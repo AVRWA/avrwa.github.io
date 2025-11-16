@@ -2,6 +2,7 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/js/all.min.js" defer></script>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Society Microsite — About • Notices • Directory</title>
@@ -137,7 +138,7 @@
     function phoneCell(phone){
       if(!phone) return '';
       const parts = phone.split(/[;,|\n]+/).map(s=>s.trim()).filter(Boolean);
-      return parts.map(p=>`<div><a href="tel:${p}">${escapeHtml(p)}</a> <a class="small" href="https://wa.me/${p.replace(/[^0-9]/g,'')}">(WhatsApp)</a></div>`).join('')
+      return parts.map(p=>`<div><a href="tel:${p}">${escapeHtml(p)}</a> <a class="small" href="https://wa.me/91${p.replace(/[^0-9]/g,'')}" target="_blank"><i class="fa-brands fa-whatsapp"></i></a></div>`).join('')
     }
 
     function escapeHtml(s){ if(!s) return ''; return s.replace(/[&<>"]+/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }

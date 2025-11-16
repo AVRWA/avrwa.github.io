@@ -1,0 +1,197 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Society Microsite — About • Notices • Directory</title>
+  <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+  <style>
+    :root{--accent:#0b7285;--muted:#666}
+    body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;margin:0;color:#222}
+    header{background:linear-gradient(90deg, #f8fdff, #eef9fb);border-bottom:1px solid #eee;padding:16px 20px;position:sticky;top:0;z-index:10}
+    .container{max-width:980px;margin:18px auto;padding:0 16px}
+    .brand{display:flex;align-items:center;gap:12px}
+    .brand h1{font-size:18px;margin:0}
+    nav{margin-left:auto}
+    nav a{color:var(--accent);text-decoration:none;margin-left:12px;font-weight:600}
+    main{padding:12px 0}
+    .card{background:#fff;border:1px solid #eee;border-radius:8px;padding:14px;margin-bottom:14px;box-shadow:0 1px 3px rgba(20,20,20,0.03)}
+    h2{margin:6px 0 12px 0}
+    .grid{display:grid;grid-template-columns:1fr 320px;gap:16px}
+    @media(max-width:880px){.grid{grid-template-columns:1fr}}
+    /* Directory table */
+    .controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    input[type=search],select{padding:8px;border-radius:6px;border:1px solid #ddd}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px;text-align:left;border-bottom:1px solid #f1f1f1;font-size:14px}
+    th{background:#fafafa}
+    .category-pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#f1f8f9;color:var(--accent);font-weight:600;font-size:12px}
+    .small{font-size:13px;color:var(--muted)}
+    .notice{background:#fffbe6;border-left:4px solid #ffd43b;padding:10px;border-radius:6px}
+    footer{padding:20px;text-align:center;color:#888;font-size:13px}
+    .loader{width:28px;height:28px;border-radius:50%;border:4px solid #eee;border-top-color:var(--accent);animation:spin 1s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container" style="display:flex;align-items:center">
+      <div class="brand">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="24" height="24" rx="4" fill="#0b7285"/><path d="M6 12h12" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div>
+          <h1>Anand Vanam (CGHB) Colony — Sector 12, Naya Raipur</h1>
+          <div class="small">Society Portal • About • Notices • Directory</div>
+        </div>
+      </div>
+      <nav>
+        <a href="#about">About</a>
+        <a href="#notices">Notices</a>
+        <a href="#directory">Directory</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <div id="about" class="card">
+      <h2>About</h2>
+      <p class="small">(Content coming soon)</p>
+    </div>
+
+    <div class="grid">
+      <div>
+        <section id="notices" class="card">
+          <h2>Notice Board</h2>
+          <div id="notices-area">
+            <p class="small">(No notices yet)</p>
+          </div>
+              <p class="small">All owners and residents are requested to refer to this.</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="directory" class="card">
+          <h2>Contact Directory</h2>
+
+          <div class="controls" style="margin-bottom:12px">
+            <input id="q" type="search" placeholder="Search name, phone, notes..." style="flex:1">
+            <select id="filterCat"><option value="">All categories</option></select>
+            <select id="sortBy"><option value="name">Sort: Name</option><option value="category">Sort: Category</option></select>
+            <div id="loading" style="display:none"><span class="loader"></span></div>
+          </div>
+
+          <div id="table-wrap" style="overflow:auto">
+            <table id="contacts-table">
+              <thead>
+                <tr><th>Category</th><th>Organization / Place / Service</th><th>Contact Person / Role</th><th>Address</th><th>Phone</th><th>Notes</th></tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <aside>
+        <!-- Removed instructional cards -->
+      </aside>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container small">Built for local communities • Host on GitHub Pages • Edit CSV via Google Sheets or repo</div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script>
+    const CSV_URL = 'https://opensheet.elk.sh/1g6h5CWppUDYl01K3agjUanTWcP_jQdoPfHG3uJd4Ubc/Local';
+
+    function el(tag, txt, cls){const e=document.createElement(tag); if(txt) e.textContent=txt; if(cls) e.className=cls; return e}
+
+    const tableBody = document.querySelector('#contacts-table tbody');
+    const filterCat = document.getElementById('filterCat');
+    const searchBox = document.getElementById('q');
+    const sortBy = document.getElementById('sortBy');
+    const loading = document.getElementById('loading');
+
+    let data = [];
+
+    function showLoading(show){loading.style.display = show ? 'inline-block' : 'none'}
+
+    function renderTable(rows){
+      tableBody.innerHTML = '';
+      if(!rows.length){ tableBody.appendChild(el('tr').appendChild(el('td','No results',''))); return }
+      rows.forEach(r=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><span class="category-pill">${escapeHtml(r.category||'')}</span></td>
+          <td><strong>${escapeHtml(r.organization||'')}</strong></td>
+          <td>${escapeHtml(r.person||'')}<div class="small">${escapeHtml(r.role||'')}</div></td>
+          <td class="small">${escapeHtml(r.address||'')}</td>
+          <td>${phoneCell(r.phone)}</td>
+          <td class="small">${escapeHtml(r.notes||'')}</td>
+        `;
+        tableBody.appendChild(tr);
+      })
+    }
+
+    function phoneCell(phone){
+      if(!phone) return '';
+      const parts = phone.split(/[;,|\n]+/).map(s=>s.trim()).filter(Boolean);
+      return parts.map(p=>`<div><a href="tel:${p}">${escapeHtml(p)}</a> <a class="small" href="https://wa.me/${p.replace(/[^0-9]/g,'')}">(WhatsApp)</a></div>`).join('')
+    }
+
+    function escapeHtml(s){ if(!s) return ''; return s.replace(/[&<>"]+/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+    function applyFilters(){
+      const q = searchBox.value.toLowerCase();
+      const cat = filterCat.value;
+      let rows = data.filter(r=>{
+        const blob = `${r.category} ${r.organization} ${r.person} ${r.role} ${r.address} ${r.phone} ${r.notes}`.toLowerCase();
+        const okQ = !q || blob.includes(q);
+        const okC = !cat || r.category === cat;
+        return okQ && okC;
+      });
+      if(sortBy.value==='name') rows.sort((a,b)=> (a.person||'').localeCompare(b.person||''));
+      else rows.sort((a,b)=> (a.category||'').localeCompare(b.category||''));
+      renderTable(rows);
+    }
+
+    function populateCategoryFilter(){
+      const cats = Array.from(new Set(data.map(d=>d.category).filter(Boolean))).sort();
+      filterCat.innerHTML = '<option value="">All categories</option>' + cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+    }
+
+    function loadCSV(){
+      showLoading(true);
+      fetch(CSV_URL)
+        .then(r => r.json())
+        .then(json => {
+          data = json.map(r => ({
+            category: r['Category'] || '',
+            organization: r['Organization / Place / Service'] || '',
+            person: r['Person / Contact Name'] || '',
+            role: '',
+            address: r['Address / Area'] || '',
+            phone: [r['Phone 1'], r['Phone 2'], r['Phone 3']].filter(Boolean).join(', '),
+            notes: r['Notes'] || ''
+          })).filter(r => r.organization || r.person);
+
+          populateCategoryFilter();
+          applyFilters();
+          showLoading(false);
+        })
+        .catch(err => {
+          console.error('Load failed', err);
+          showLoading(false);
+        });
+    }
+
+    searchBox.addEventListener('input', applyFilters);
+    filterCat.addEventListener('change', applyFilters);
+    sortBy.addEventListener('change', applyFilters);
+
+    loadCSV();
+  </script>
+</body>
+</html>
+

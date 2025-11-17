@@ -56,46 +56,36 @@
   <main class="container">
     <div id="about" class="card">
       <h2>About</h2>
-      <p class="small">(Content coming soon)</p>
+      <p class="small">A calm, well-planned residential community built by the Chhattisgarh Housing Board in the heart of Naya Raipur. Designed with wide roads, green spaces, and modern infrastructure, Anand Vanam offers peaceful living with fast connectivity, sustainable planning, and a growing neighbourhood ecosystem.</p>
     </div>
 
-    <div class="grid">
-      <div>
-        <section id="notices" class="card">
-          <h2>Notice Board</h2>
-          <div id="notices-area">
-            <p class="small">(No notices yet)</p>
-          </div>
-              <p class="small">All owners and residents are requested to refer to this.</p>
-            </div>
-          </div>
-        </section>
+    <section id="notices" class="card">
+      <h2>Notice Board</h2>
+      <div id="notices-area">
+        <p class="small">(No notices yet)</p>
+      </div>
+      <p class="small" style="margin-top:15px">All owners and residents are requested to refer to this.</p>
+    </section>
 
-        <section id="directory" class="card">
-          <h2>Contact Directory</h2>
+    <section id="directory" class="card">
+      <h2>Contact Directory</h2>
 
-          <div class="controls" style="margin-bottom:12px">
-            <input id="q" type="search" placeholder="Search name, phone, notes..." style="flex:1">
-            <select id="filterCat"><option value="">All categories</option></select>
-            <select id="sortBy"><option value="name">Sort: Name</option><option value="category">Sort: Category</option></select>
-            <div id="loading" style="display:none"><span class="loader"></span></div>
-          </div>
-
-          <div id="table-wrap" style="overflow:auto">
-            <table id="contacts-table">
-              <thead>
-                <tr><th>Category</th><th>Organization / Place / Service</th><th>Contact Person / Role</th><th>Address</th><th>Phone</th><th>Notes</th></tr>
-              </thead>
-              <tbody></tbody>
-            </table>
-          </div>
-        </section>
+      <div class="controls" style="margin-bottom:12px">
+        <input id="q" type="search" placeholder="Search name, phone, notes..." style="flex:1">
+        <select id="filterCat"><option value="">All categories</option></select>
+        <select id="sortBy"><option value="name">Sort: Name</option><option value="category">Sort: Category</option></select>
+        <div id="loading" style="display:none"><span class="loader"></span></div>
       </div>
 
-      <aside>
-        <!-- Removed instructional cards -->
-      </aside>
-    </div>
+      <div id="table-wrap" style="overflow:auto">
+        <table id="contacts-table">
+          <thead>
+            <tr><th>Category</th><th>Organization / Place / Service</th><th>Contact Person / Role</th><th>Address</th><th>Phone</th><th>Notes</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
   </main>
 
   <footer>
@@ -105,6 +95,7 @@
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script>
     const CSV_URL = 'https://opensheet.elk.sh/1g6h5CWppUDYl01K3agjUanTWcP_jQdoPfHG3uJd4Ubc/Local';
+    const NOTICE_URL = 'https://opensheet.elk.sh/1g6h5CWppUDYl01K3agjUanTWcP_jQdoPfHG3uJd4Ubc/Notice';
 
     function el(tag, txt, cls){const e=document.createElement(tag); if(txt) e.textContent=txt; if(cls) e.className=cls; return e}
 
@@ -113,8 +104,10 @@
     const searchBox = document.getElementById('q');
     const sortBy = document.getElementById('sortBy');
     const loading = document.getElementById('loading');
+    const noticesArea = document.getElementById('notices-area');
 
     let data = [];
+    let notices = [];
 
     function showLoading(show){loading.style.display = show ? 'inline-block' : 'none'}
 
@@ -162,6 +155,43 @@
       filterCat.innerHTML = '<option value="">All categories</option>' + cats.map(c=>`<option value="${c}">${c}</option>`).join('');
     }
 
+    function renderNotices(noticeList){
+      if(!noticeList || !noticeList.length){
+        noticesArea.innerHTML = '<p class="small">(No notices yet)</p>';
+        return;
+      }
+      noticesArea.innerHTML = noticeList.map(n => {
+        const date = n.Date || '';
+        const title = escapeHtml(n.Title || '');
+        const notice = escapeHtml(n.Notice || '').replace(/\n/g, '<br>');
+        const link = n.Link || '';
+        const linkHtml = link ? `<div style="margin-top:10px;padding-top:10px;border-top:1px solid #f0d98e"><a href="${escapeHtml(link)}" target="_blank" style="color:var(--accent);text-decoration:none;font-size:13px"><i class="fa-solid fa-paperclip"></i> View Attachment</a></div>` : '';
+        return `
+          <div class="notice" style="margin-bottom:15px">
+            <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px">
+              <strong>${title}</strong>
+              <span class="small" style="white-space:nowrap;margin-left:10px">${date}</span>
+            </div>
+            <div style="font-size:14px;line-height:1.6">${notice}</div>
+            ${linkHtml}
+          </div>
+        `;
+      }).join('');
+    }
+
+    function loadNotices(){
+      fetch(NOTICE_URL)
+        .then(r => r.json())
+        .then(json => {
+          notices = json;
+          renderNotices(notices);
+        })
+        .catch(err => {
+          console.error('Failed to load notices', err);
+          noticesArea.innerHTML = '<p class="small">(Failed to load notices)</p>';
+        });
+    }
+
     function loadCSV(){
       showLoading(true);
       fetch(CSV_URL)
@@ -192,6 +222,7 @@
     sortBy.addEventListener('change', applyFilters);
 
     loadCSV();
+    loadNotices();
   </script>
 </body>
 </html>

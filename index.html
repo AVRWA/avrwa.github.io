@@ -27,6 +27,9 @@
     table{width:100%;border-collapse:collapse}
     th,td{padding:8px;text-align:left;border-bottom:1px solid #f1f1f1;font-size:14px}
     th{background:#fafafa}
+    th[data-sort]:hover{background:#f0f0f0}
+    .sort-indicator{display:inline-block;margin-left:4px;opacity:0.3;font-size:11px}
+    .sort-indicator.active{opacity:1;color:var(--accent)}
     .category-pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#f1f8f9;color:var(--accent);font-weight:600;font-size:12px}
     .small{font-size:13px;color:var(--muted)}
     .notice{background:#fffbe6;border-left:4px solid #ffd43b;padding:10px;border-radius:6px}
@@ -61,10 +64,10 @@
 
     <section id="notices" class="card">
       <h2>Notice Board</h2>
+      <p class="small" style="margin-top:15px">All owners and residents are requested to refer to this.</p>
       <div id="notices-area">
         <p class="small">(No notices yet)</p>
       </div>
-      <p class="small" style="margin-top:15px">All owners and residents are requested to refer to this.</p>
     </section>
 
     <section id="directory" class="card">
@@ -73,14 +76,20 @@
       <div class="controls" style="margin-bottom:12px">
         <input id="q" type="search" placeholder="Search name, phone, notes..." style="flex:1">
         <select id="filterCat"><option value="">All categories</option></select>
-        <select id="sortBy"><option value="name">Sort: Name</option><option value="category">Sort: Category</option></select>
         <div id="loading" style="display:none"><span class="loader"></span></div>
       </div>
 
       <div id="table-wrap" style="overflow:auto">
         <table id="contacts-table">
           <thead>
-            <tr><th>Category</th><th>Organization / Place / Service</th><th>Contact Person / Role</th><th>Address</th><th>Phone</th><th>Notes</th></tr>
+            <tr>
+              <th data-sort="category" style="cursor:pointer;user-select:none">Category <span class="sort-indicator"></span></th>
+              <th data-sort="organization" style="cursor:pointer;user-select:none">Organization / Place / Service <span class="sort-indicator"></span></th>
+              <th data-sort="person" style="cursor:pointer;user-select:none">Contact Person / Role <span class="sort-indicator"></span></th>
+              <th data-sort="address" style="cursor:pointer;user-select:none">Address <span class="sort-indicator"></span></th>
+              <th>Phone</th>
+              <th>Notes</th>
+            </tr>
           </thead>
           <tbody></tbody>
         </table>
@@ -102,12 +111,13 @@
     const tableBody = document.querySelector('#contacts-table tbody');
     const filterCat = document.getElementById('filterCat');
     const searchBox = document.getElementById('q');
-    const sortBy = document.getElementById('sortBy');
     const loading = document.getElementById('loading');
     const noticesArea = document.getElementById('notices-area');
 
     let data = [];
     let notices = [];
+    let sortColumn = 'category';
+    let sortDirection = 'asc';
 
     function showLoading(show){loading.style.display = show ? 'inline-block' : 'none'}
 
@@ -136,6 +146,29 @@
 
     function escapeHtml(s){ if(!s) return ''; return s.replace(/[&<>"]+/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
+    function updateSortIndicators(){
+      document.querySelectorAll('th[data-sort] .sort-indicator').forEach(indicator => {
+        const th = indicator.parentElement;
+        const column = th.getAttribute('data-sort');
+        if(column === sortColumn){
+          indicator.textContent = sortDirection === 'asc' ? '▲' : '▼';
+          indicator.classList.add('active');
+        } else {
+          indicator.textContent = '▲';
+          indicator.classList.remove('active');
+        }
+      });
+    }
+
+    function sortData(rows){
+      return rows.sort((a, b) => {
+        let aVal = (a[sortColumn] || '').toString().toLowerCase();
+        let bVal = (b[sortColumn] || '').toString().toLowerCase();
+        const comparison = aVal.localeCompare(bVal);
+        return sortDirection === 'asc' ? comparison : -comparison;
+      });
+    }
+
     function applyFilters(){
       const q = searchBox.value.toLowerCase();
       const cat = filterCat.value;
@@ -145,9 +178,9 @@
         const okC = !cat || r.category === cat;
         return okQ && okC;
       });
-      if(sortBy.value==='name') rows.sort((a,b)=> (a.person||'').localeCompare(b.person||''));
-      else rows.sort((a,b)=> (a.category||'').localeCompare(b.category||''));
+      rows = sortData(rows);
       renderTable(rows);
+      updateSortIndicators();
     }
 
     function populateCategoryFilter(){
@@ -219,7 +252,20 @@
 
     searchBox.addEventListener('input', applyFilters);
     filterCat.addEventListener('change', applyFilters);
-    sortBy.addEventListener('change', applyFilters);
+
+    // Add click handlers to sortable column headers
+    document.querySelectorAll('th[data-sort]').forEach(th => {
+      th.addEventListener('click', () => {
+        const column = th.getAttribute('data-sort');
+        if(sortColumn === column){
+          sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+          sortColumn = column;
+          sortDirection = 'asc';
+        }
+        applyFilters();
+      });
+    });
 
     loadCSV();
     loadNotices();

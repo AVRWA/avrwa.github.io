@@ -6,17 +6,21 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>आनंद वनम् — Society Portal</title>
-  <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+  <link rel="icon" href="logo.svg" type="image/svg+xml">
   <style>
-    :root{--accent:#0b7285;--muted:#666}
-    body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;margin:0;color:#222}
-    html{scroll-behavior:smooth}
+    :root{--accent:#0b7285;--muted:#666;--nav-height:50px}
+    body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;margin:0;color:#222;padding-top:var(--nav-height)}
+    html{scroll-behavior:smooth;scroll-padding-top:var(--nav-height)}
     header{background:linear-gradient(90deg, #f8fdff, #eef9fb);border-bottom:1px solid #eee;padding:16px 20px}
     .container{max-width:980px;margin:18px auto;padding:0 16px}
-    .brand{display:flex;align-items:center;gap:12px}
-    .brand h1{font-size:18px;margin:0}
-    nav{margin-left:auto}
-    nav a{color:var(--accent);text-decoration:none;margin-left:12px;font-weight:600}
+    .brand{display:flex;align-items:center;gap:8px}
+    .brand h1{font-size:14px;margin:0;font-weight:600}
+    .brand .small{display:none}
+    nav{position:fixed;top:0;left:0;right:0;background:#fff;border-bottom:1px solid #e0e0e0;box-shadow:0 2px 4px rgba(0,0,0,0.08);z-index:1000;height:var(--nav-height);display:flex;align-items:center;justify-content:space-between;padding:0 20px}
+    nav .brand{flex:1}
+    nav .nav-links{display:flex;gap:20px}
+    nav a{color:var(--accent);text-decoration:none;font-weight:600;font-size:14px;transition:color 0.2s;white-space:nowrap}
+    nav a:hover{color:#0a5f6d}
     main{padding:12px 0}
     .card{background:#fff;border:1px solid #eee;border-radius:8px;padding:14px;margin-bottom:14px;box-shadow:0 1px 3px rgba(20,20,20,0.03)}
     h2{margin:6px 0 12px 0}
@@ -40,27 +44,22 @@
   </style>
 </head>
 <body>
-  <header>
-    <div class="container" style="display:flex;align-items:center">
-      <div class="brand">
-        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="24" height="24" rx="4" fill="#0b7285"/><path d="M6 12h12" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <div>
-          <h1>Anand Vanam (CGHB) Colony — Sector 12, Naya Raipur</h1>
-          <div class="small">Society Portal</div>
-        </div>
-      </div>
-      <nav>
-        <a href="#about">About</a>
-        <a href="#notices">Notices</a>
-        <a href="#directory">Directory</a>
-      </nav>
+  <nav>
+    <div class="brand">
+      <img src="logo.svg" alt="Anand Vanam Logo" width="32" height="32">
+      <h1>Anand Vanam (CGHB) Colony - Sector 12, Nava Raipur</h1>
     </div>
-  </header>
+    <div class="nav-links">
+      <a href="#about">About</a>
+      <a href="#notices">Notices</a>
+      <a href="#directory">Directory</a>
+    </div>
+  </nav>
 
   <main class="container">
     <div id="about" class="card">
       <h2>About</h2>
-      <p class="small">A calm, well-planned residential community built by the Chhattisgarh Housing Board in the heart of Naya Raipur. Designed with wide roads, green spaces, and modern infrastructure, Anand Vanam offers peaceful living with fast connectivity, sustainable planning, and a growing neighbourhood ecosystem.</p>
+      <p class="small">A calm, well-planned residential community built by the Chhattisgarh Housing Board in the heart of Nava Raipur. Designed with wide roads, green spaces, and modern infrastructure, Anand Vanam offers peaceful living with fast connectivity, sustainable planning, and a growing neighbourhood ecosystem.</p>
     </div>
 
     <section id="notices" class="card">

@@ -74,7 +74,7 @@
       <h2>Contact Directory</h2>
 
       <div class="controls" style="margin-bottom:12px">
-        <input id="q" type="search" placeholder="Search name, phone, notes..." style="flex:1">
+        <input id="q" type="search" placeholder="Search name, contact, notes..." style="flex:1">
         <select id="filterCat"><option value="">All categories</option></select>
         <div id="loading" style="display:none"><span class="loader"></span></div>
       </div>
@@ -87,7 +87,7 @@
               <th data-sort="organization" style="cursor:pointer;user-select:none">Organization / Place / Service <span class="sort-indicator"></span></th>
               <th data-sort="person" style="cursor:pointer;user-select:none">Contact Person / Role <span class="sort-indicator"></span></th>
               <th data-sort="address" style="cursor:pointer;user-select:none">Address <span class="sort-indicator"></span></th>
-              <th>Phone</th>
+              <th>Contact</th>
               <th>Notes</th>
             </tr>
           </thead>
@@ -104,7 +104,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script>
-    const CSV_URL = 'https://opensheet.elk.sh/1g6h5CWppUDYl01K3agjUanTWcP_jQdoPfHG3uJd4Ubc/Local';
+    const LOCAL_CONTACT_DIR_URL = 'https://opensheet.elk.sh/1g6h5CWppUDYl01K3agjUanTWcP_jQdoPfHG3uJd4Ubc/Local';
     const NOTICE_URL = 'https://opensheet.elk.sh/1g6h5CWppUDYl01K3agjUanTWcP_jQdoPfHG3uJd4Ubc/Notice';
 
     function el(tag, txt, cls){const e=document.createElement(tag); if(txt) e.textContent=txt; if(cls) e.className=cls; return e}
@@ -132,17 +132,24 @@
           <td><strong>${escapeHtml(r.organization||'')}</strong></td>
           <td>${escapeHtml(r.person||'')}<div class="small">${escapeHtml(r.role||'')}</div></td>
           <td class="small">${escapeHtml(r.address||'')}</td>
-          <td style="width:150px">${phoneCell(r.phone)}</td>
+          <td style="width:150px">${contactCell(r.phone, r.email)}</td>
           <td>${escapeHtml(r.notes||'')}</td>
         `;
         tableBody.appendChild(tr);
       })
     }
 
-    function phoneCell(phone){
-      if(!phone) return '';
-      const parts = phone.split(/[;,|\n]+/).map(s=>s.trim()).filter(Boolean);
-        return parts.map(p=>`<div><a href="tel:${p}">${escapeHtml(p)}</a> <span><a class="small" href="https://wa.me/91${p.replace(/[^0-9]/g,'')}" target="_blank"><i class="fa-brands fa-whatsapp" style="width: 20px; height:20px; color:green"></i></a></span></div>`).join('')
+    function contactCell(phone, email){
+      let html = '';
+      if(phone){
+        const parts = phone.split(/[;,|\n]+/).map(s=>s.trim()).filter(Boolean);
+        html += parts.map(p=>`<div><a href="tel:${p}">${escapeHtml(p)}</a> <span><a class="small" href="https://wa.me/91${p.replace(/[^0-9]/g,'')}" target="_blank"><i class="fa-brands fa-whatsapp" style="width: 20px; height:20px; color:green"></i></a></span></div>`).join('');
+      }
+      if(email){
+        const emails = email.split(/[;,|\n]+/).map(s=>s.trim()).filter(Boolean);
+        html += emails.map(e=>`<div><a href="mailto:${escapeHtml(e)}">${escapeHtml(e)}</a></div>`).join('');
+      }
+      return html;
     }
 
     function escapeHtml(s){ if(!s) return ''; return s.replace(/[&<>"]+/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
@@ -174,7 +181,7 @@
       const q = searchBox.value.toLowerCase();
       const cat = filterCat.value;
       let rows = data.filter(r=>{
-        const blob = `${r.category} ${r.organization} ${r.person} ${r.role} ${r.address} ${r.phone} ${r.notes}`.toLowerCase();
+        const blob = `${r.category} ${r.organization} ${r.person} ${r.role} ${r.address} ${r.phone} ${r.email} ${r.notes}`.toLowerCase();
         const okQ = !q || blob.includes(q);
         const okC = !cat || r.category === cat;
         return okQ && okC;
@@ -226,9 +233,9 @@
         });
     }
 
-    function loadCSV(){
+    function loadLocalContactDir(){
       showLoading(true);
-      fetch(CSV_URL)
+      fetch(LOCAL_CONTACT_DIR_URL)
         .then(r => r.json())
         .then(json => {
           data = json.map(r => ({
@@ -238,6 +245,7 @@
             role: '',
             address: r['Address / Area'] || '',
             phone: [r['Phone 1'], r['Phone 2'], r['Phone 3']].filter(Boolean).join(', '),
+            email: r['Email'] || '',
             notes: r['Notes'] || ''
           })).filter(r => r.organization || r.person);
 
@@ -268,7 +276,7 @@
       });
     });
 
-    loadCSV();
+    loadLocalContactDir();
     loadNotices();
   </script>
 </body>

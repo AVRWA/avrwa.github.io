@@ -21,6 +21,11 @@
     nav .nav-links{display:flex;gap:20px}
     nav a{color:var(--accent);text-decoration:none;font-weight:600;font-size:14px;transition:color 0.2s;white-space:nowrap}
     nav a:hover{color:#0a5f6d}
+    .hamburger{display:none;flex-direction:column;gap:4px;cursor:pointer;padding:8px;background:none;border:none}
+    .hamburger span{display:block;width:24px;height:2px;background:var(--accent);transition:all 0.3s}
+    .hamburger.active span:nth-child(1){transform:rotate(45deg) translate(6px, 6px)}
+    .hamburger.active span:nth-child(2){opacity:0}
+    .hamburger.active span:nth-child(3){transform:rotate(-45deg) translate(6px, -6px)}
     main{padding:12px 0}
     .card{background:#fff;border:1px solid #eee;border-radius:8px;padding:14px;margin-bottom:14px;box-shadow:0 1px 3px rgba(20,20,20,0.03)}
     h2{margin:6px 0 12px 0}
@@ -44,8 +49,11 @@
     @media(max-width:768px){
       nav .brand h1{display:none}
       nav{padding:0 12px}
-      nav .nav-links{gap:12px}
-      nav a{font-size:13px;margin:0}
+      .hamburger{display:flex}
+      nav .nav-links{position:fixed;top:var(--nav-height);left:0;right:0;background:#fff;flex-direction:column;gap:0;padding:0;box-shadow:0 4px 6px rgba(0,0,0,0.1);max-height:0;overflow:hidden;transition:max-height 0.3s ease}
+      nav .nav-links.active{max-height:200px}
+      nav .nav-links a{padding:16px 20px;border-bottom:1px solid #f0f0f0;display:block}
+      nav .nav-links a:hover{background:#f8f8f8}
     }
   </style>
 </head>
@@ -55,6 +63,11 @@
       <img src="logo.svg" alt="Anand Vanam Logo" width="32" height="32">
       <h1>Anand Vanam (CGHB) Colony - Sector 12, Nava Raipur</h1>
     </div>
+    <button class="hamburger" aria-label="Toggle menu">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
     <div class="nav-links">
       <a href="#about">About</a>
       <a href="#notices">Notices</a>
@@ -284,6 +297,31 @@
 
     loadLocalContactDir();
     loadNotices();
+
+    // Hamburger menu toggle
+    const hamburger = document.querySelector('.hamburger');
+    const navLinks = document.querySelector('.nav-links');
+
+    hamburger.addEventListener('click', () => {
+      hamburger.classList.toggle('active');
+      navLinks.classList.toggle('active');
+    });
+
+    // Close menu when clicking on a link
+    document.querySelectorAll('.nav-links a').forEach(link => {
+      link.addEventListener('click', () => {
+        hamburger.classList.remove('active');
+        navLinks.classList.remove('active');
+      });
+    });
+
+    // Close menu when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('nav')) {
+        hamburger.classList.remove('active');
+        navLinks.classList.remove('active');
+      }
+    });
   </script>
 </body>
 </html>

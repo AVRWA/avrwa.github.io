@@ -82,7 +82,10 @@
     </div>
 
     <section id="notices" class="card">
-      <h2>Notice Board</h2>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:10px">
+        <h2 style="margin:0">Notice Board</h2>
+        <span id="notices-last-updated" class="small" style="color:#666;;white-space:nowrap"></span>
+      </div>
       <p class="small" style="margin-top:15px">All owners and residents are requested to refer to this.</p>
       <div id="notices-area">
         <p class="small">(No notices yet)</p>
@@ -90,7 +93,10 @@
     </section>
 
     <section id="directory" class="card">
-      <h2>Contact Directory</h2>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:10px">
+        <h2 style="margin:0">Contact Directory</h2>
+        <span id="directory-last-updated" class="small" style="color:#666;white-space:nowrap"></span>
+      </div>
 
       <div class="controls" style="margin-bottom:12px">
         <input id="q" type="search" placeholder="Search name, contact, notes..." style="flex:1">
@@ -168,6 +174,41 @@
       }
     }
 
+    function formatLastUpdated(timestamp, fromCache) {
+      if (!timestamp) return '';
+
+      const date = new Date(parseInt(timestamp));
+      const now = new Date();
+      const diffMs = now - date;
+      const diffMins = Math.floor(diffMs / (60 * 1000));
+      const diffHours = Math.floor(diffMs / (60 * 60 * 1000));
+      const diffDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+
+      let timeAgo;
+      if (diffMins < 1) {
+        timeAgo = 'just now';
+      } else if (diffMins < 60) {
+        timeAgo = `${diffMins} min${diffMins > 1 ? 's' : ''} ago`;
+      } else if (diffHours < 24) {
+        timeAgo = `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+      } else if (diffDays < 7) {
+        timeAgo = `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+      } else {
+        timeAgo = date.toLocaleDateString();
+      }
+
+      // Green circle = fresh from API, Yellow circle = from cache
+      const indicator = fromCache ? '🟡' : '🟢';
+      return `${indicator} ${timeAgo}`;
+    }
+
+    function updateLastUpdatedUI(elementId, timestamp, fromCache) {
+      const element = document.getElementById(elementId);
+      if (element && timestamp) {
+        element.textContent = formatLastUpdated(timestamp, fromCache);
+      }
+    }
+
     // Fetch with retry logic
     async function fetchWithRetry(url, maxRetries = 3, delay = 1000) {
       for (let i = 0; i < maxRetries; i++) {
@@ -179,8 +220,9 @@
           const data = await response.json();
           return data;
         } catch (error) {
-          console.warn(`Attempt ${i + 1} failed:`, error);
+          // Only log on final attempt
           if (i === maxRetries - 1) {
+            console.warn(`Failed to fetch after ${maxRetries} attempts`);
             throw error;
           }
           // Wait before retrying (exponential backoff)
@@ -198,14 +240,12 @@
         saveToCache(cacheKey, data);
         return { data, fromCache: false };
       } catch (error) {
-        console.error('Failed to fetch data, trying cache:', error);
-        // Fallback to cache
+        // Silently fallback to cache
         const cachedData = getFromCache(cacheKey);
         if (cachedData) {
-          console.info('Using cached data');
           return { data: cachedData, fromCache: true };
         }
-        throw new Error('No data available (fetch failed and no cache)');
+        throw new Error('No data available');
       }
     }
 
@@ -326,12 +366,9 @@
         notices = json;
         renderNotices(notices);
 
-        // Show indicator if using cached data
-        if (fromCache) {
-          const age = getCacheAge(CACHE_KEYS.notices);
-          const hours = age ? Math.floor(age / (60 * 60 * 1000)) : 0;
-          console.info(`Notices loaded from cache (${hours} hours old)`);
-        }
+        // Update last updated indicator
+        const timestamp = localStorage.getItem(CACHE_KEYS.notices + '_timestamp');
+        updateLastUpdatedUI('notices-last-updated', timestamp, fromCache);
       } catch (err) {
         console.error('Failed to load notices', err);
         noticesArea.innerHTML = '<p class="small">(Failed to load notices)</p>';
@@ -357,12 +394,9 @@
         applyFilters();
         showLoading(false);
 
-        // Show indicator if using cached data
-        if (fromCache) {
-          const age = getCacheAge(CACHE_KEYS.contacts);
-          const hours = age ? Math.floor(age / (60 * 60 * 1000)) : 0;
-          console.info(`Contact directory loaded from cache (${hours} hours old)`);
-        }
+        // Update last updated indicator
+        const timestamp = localStorage.getItem(CACHE_KEYS.contacts + '_timestamp');
+        updateLastUpdatedUI('directory-last-updated', timestamp, fromCache);
       } catch (err) {
         console.error('Load failed', err);
         tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px">Failed to load data. Please refresh the page.</td></tr>';

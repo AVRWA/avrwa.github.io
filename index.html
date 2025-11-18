@@ -121,12 +121,92 @@
     <div class="container small">© AVRWA — All rights reserved.</div>
   </footer>
 
-  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script>
     const LOCAL_CONTACT_DIR_URL = 'https://opensheet.elk.sh/1g6h5CWppUDYl01K3agjUanTWcP_jQdoPfHG3uJd4Ubc/Local';
     const NOTICE_URL = 'https://opensheet.elk.sh/1g6h5CWppUDYl01K3agjUanTWcP_jQdoPfHG3uJd4Ubc/Notice';
 
+    // Cache keys for localStorage
+    const CACHE_KEYS = {
+      contacts: 'avrwa_contacts_cache',
+      notices: 'avrwa_notices_cache',
+      contactsTimestamp: 'avrwa_contacts_timestamp',
+      noticesTimestamp: 'avrwa_notices_timestamp'
+    };
+
+    // Cache duration: 1 hour (in milliseconds)
+    const CACHE_DURATION = 60 * 60 * 1000;
+
     function el(tag, txt, cls){const e=document.createElement(tag); if(txt) e.textContent=txt; if(cls) e.className=cls; return e}
+
+    // Cache management functions
+    function saveToCache(key, data) {
+      try {
+        localStorage.setItem(key, JSON.stringify(data));
+        localStorage.setItem(key + '_timestamp', Date.now().toString());
+      } catch (error) {
+        console.warn('Failed to save to cache:', error);
+      }
+    }
+
+    function getFromCache(key) {
+      try {
+        const timestamp = localStorage.getItem(key + '_timestamp');
+        if (!timestamp) return null;
+
+        const age = Date.now() - parseInt(timestamp);
+        if (age > CACHE_DURATION) {
+          // Cache expired
+          return null;
+        }
+
+        const data = localStorage.getItem(key);
+        return data ? JSON.parse(data) : null;
+      } catch (error) {
+        console.warn('Failed to read from cache:', error);
+        return null;
+      }
+    }
+
+    // Fetch with retry logic
+    async function fetchWithRetry(url, maxRetries = 3, delay = 1000) {
+      for (let i = 0; i < maxRetries; i++) {
+        try {
+          const response = await fetch(url);
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          const data = await response.json();
+          return data;
+        } catch (error) {
+          console.warn(`Attempt ${i + 1} failed:`, error);
+          if (i === maxRetries - 1) {
+            throw error;
+          }
+          // Wait before retrying (exponential backoff)
+          await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, i)));
+        }
+      }
+    }
+
+    // Fetch data with cache fallback
+    async function fetchDataWithCache(url, cacheKey) {
+      try {
+        // Try to fetch fresh data
+        const data = await fetchWithRetry(url);
+        // Save to cache
+        saveToCache(cacheKey, data);
+        return { data, fromCache: false };
+      } catch (error) {
+        console.error('Failed to fetch data, trying cache:', error);
+        // Fallback to cache
+        const cachedData = getFromCache(cacheKey);
+        if (cachedData) {
+          console.info('Using cached data');
+          return { data: cachedData, fromCache: true };
+        }
+        throw new Error('No data available (fetch failed and no cache)');
+      }
+    }
 
     const tableBody = document.querySelector('#contacts-table tbody');
     const filterCat = document.getElementById('filterCat');
@@ -239,43 +319,50 @@
       }).join('');
     }
 
-    function loadNotices(){
-      fetch(NOTICE_URL)
-        .then(r => r.json())
-        .then(json => {
-          notices = json;
-          renderNotices(notices);
-        })
-        .catch(err => {
-          console.error('Failed to load notices', err);
-          noticesArea.innerHTML = '<p class="small">(Failed to load notices)</p>';
-        });
+    async function loadNotices(){
+      try {
+        const { data: json, fromCache } = await fetchDataWithCache(NOTICE_URL, CACHE_KEYS.notices);
+        notices = json;
+        renderNotices(notices);
+
+        // Show indicator if using cached data
+        if (fromCache) {
+          console.info('Notices loaded from cache');
+        }
+      } catch (err) {
+        console.error('Failed to load notices', err);
+        noticesArea.innerHTML = '<p class="small">(Failed to load notices)</p>';
+      }
     }
 
-    function loadLocalContactDir(){
+    async function loadLocalContactDir(){
       showLoading(true);
-      fetch(LOCAL_CONTACT_DIR_URL)
-        .then(r => r.json())
-        .then(json => {
-          data = json.map(r => ({
-            category: r['Category'] || '',
-            organization: r['Organization / Place / Service'] || '',
-            person: r['Person / Contact Name'] || '',
-            role: '',
-            address: r['Address / Area'] || '',
-            phone: [r['Phone 1'], r['Phone 2'], r['Phone 3']].filter(Boolean).join(', '),
-            email: r['Email'] || '',
-            notes: r['Notes'] || ''
-          })).filter(r => r.organization || r.person);
+      try {
+        const { data: json, fromCache } = await fetchDataWithCache(LOCAL_CONTACT_DIR_URL, CACHE_KEYS.contacts);
+        data = json.map(r => ({
+          category: r['Category'] || '',
+          organization: r['Organization / Place / Service'] || '',
+          person: r['Person / Contact Name'] || '',
+          role: '',
+          address: r['Address / Area'] || '',
+          phone: [r['Phone 1'], r['Phone 2'], r['Phone 3']].filter(Boolean).join(', '),
+          email: r['Email'] || '',
+          notes: r['Notes'] || ''
+        })).filter(r => r.organization || r.person);
 
-          populateCategoryFilter();
-          applyFilters();
-          showLoading(false);
-        })
-        .catch(err => {
-          console.error('Load failed', err);
-          showLoading(false);
-        });
+        populateCategoryFilter();
+        applyFilters();
+        showLoading(false);
+
+        // Show indicator if using cached data
+        if (fromCache) {
+          console.info('Contact directory loaded from cache');
+        }
+      } catch (err) {
+        console.error('Load failed', err);
+        tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px">Failed to load data. Please refresh the page.</td></tr>';
+        showLoading(false);
+      }
     }
 
     searchBox.addEventListener('input', applyFilters);

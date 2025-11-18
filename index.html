@@ -150,19 +150,20 @@
 
     function getFromCache(key) {
       try {
-        const timestamp = localStorage.getItem(key + '_timestamp');
-        if (!timestamp) return null;
-
-        const age = Date.now() - parseInt(timestamp);
-        if (age > CACHE_DURATION) {
-          // Cache expired
-          return null;
-        }
-
         const data = localStorage.getItem(key);
         return data ? JSON.parse(data) : null;
       } catch (error) {
         console.warn('Failed to read from cache:', error);
+        return null;
+      }
+    }
+
+    function getCacheAge(key) {
+      try {
+        const timestamp = localStorage.getItem(key + '_timestamp');
+        if (!timestamp) return null;
+        return Date.now() - parseInt(timestamp);
+      } catch (error) {
         return null;
       }
     }
@@ -327,7 +328,9 @@
 
         // Show indicator if using cached data
         if (fromCache) {
-          console.info('Notices loaded from cache');
+          const age = getCacheAge(CACHE_KEYS.notices);
+          const hours = age ? Math.floor(age / (60 * 60 * 1000)) : 0;
+          console.info(`Notices loaded from cache (${hours} hours old)`);
         }
       } catch (err) {
         console.error('Failed to load notices', err);
@@ -356,7 +359,9 @@
 
         // Show indicator if using cached data
         if (fromCache) {
-          console.info('Contact directory loaded from cache');
+          const age = getCacheAge(CACHE_KEYS.contacts);
+          const hours = age ? Math.floor(age / (60 * 60 * 1000)) : 0;
+          console.info(`Contact directory loaded from cache (${hours} hours old)`);
         }
       } catch (err) {
         console.error('Load failed', err);

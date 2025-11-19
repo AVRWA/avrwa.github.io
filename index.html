@@ -135,6 +135,16 @@
           <p class="small">(Loading...)</p>
         </div>
       </div>
+
+      <div style="margin-top:25px;padding-top:20px;border-top:1px solid #eee">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:10px">
+          <h3 style="margin:0;font-size:1.1em">🚌 Tatpar BRTS Schedule</h3>
+          <span id="brts-last-updated" class="small" style="color:#666;white-space:nowrap"></span>
+        </div>
+        <div id="brts-area">
+          <p class="small">(Loading...)</p>
+        </div>
+      </div>
     </section>
   </main>
 
@@ -147,15 +157,18 @@
     const LOCAL_CONTACT_DIR_URL = 'https://opensheet.elk.sh/1g6h5CWppUDYl01K3agjUanTWcP_jQdoPfHG3uJd4Ubc/Local';
     const NOTICE_URL = 'https://opensheet.elk.sh/1g6h5CWppUDYl01K3agjUanTWcP_jQdoPfHG3uJd4Ubc/Notice';
     const VEGMARKET_URL = 'https://opensheet.elk.sh/1g6h5CWppUDYl01K3agjUanTWcP_jQdoPfHG3uJd4Ubc/VegMarket';
+    const BRTS_URL = 'https://opensheet.elk.sh/1g6h5CWppUDYl01K3agjUanTWcP_jQdoPfHG3uJd4Ubc/BRTS';
 
     // Cache keys for localStorage
     const CACHE_KEYS = {
       contacts: 'avrwa_contacts_cache',
       notices: 'avrwa_notices_cache',
       vegmarket: 'avrwa_vegmarket_cache',
+      brts: 'avrwa_brts_cache',
       contactsTimestamp: 'avrwa_contacts_timestamp',
       noticesTimestamp: 'avrwa_notices_timestamp',
-      vegmarketTimestamp: 'avrwa_vegmarket_timestamp'
+      vegmarketTimestamp: 'avrwa_vegmarket_timestamp',
+      brtsTimestamp: 'avrwa_brts_timestamp'
     };
 
     // Cache duration: 24 hour (in milliseconds)
@@ -423,6 +436,31 @@
       `;
     }
 
+    function renderBRTS(brtsList){
+      const brtsArea = document.getElementById('brts-area');
+
+      if(!brtsList || !brtsList.length){
+        brtsArea.innerHTML = '<p class="small">(No data available)</p>';
+        return;
+      }
+
+      const link = brtsList[0].Link || '';
+
+      if(!link){
+        brtsArea.innerHTML = '<p class="small">(No schedule available)</p>';
+        return;
+      }
+
+      brtsArea.innerHTML = `
+        <div style="padding:15px;background:#f9f9f9;border-radius:8px;border-left:4px solid var(--accent)">
+          <p style="margin:0 0 10px 0;font-size:14px">View the complete Tatpar BRTS schedule:</p>
+          <a href="${escapeHtml(link)}" target="_blank" style="display:inline-flex;align-items:center;gap:8px;color:var(--accent);text-decoration:none;font-weight:500">
+            <i class="fa-solid fa-file-pdf"></i> Download Schedule (PDF)
+          </a>
+        </div>
+      `;
+    }
+
     async function loadNotices(){
       try {
         const { data: json, fromCache } = await fetchDataWithCache(NOTICE_URL, CACHE_KEYS.notices);
@@ -449,6 +487,20 @@
       } catch (err) {
         console.error('Failed to load vegetable market', err);
         document.getElementById('vegmarket-area').innerHTML = '<p class="small">(Failed to load data)</p>';
+      }
+    }
+
+    async function loadBRTS(){
+      try {
+        const { data: json, fromCache } = await fetchDataWithCache(BRTS_URL, CACHE_KEYS.brts);
+        renderBRTS(json);
+
+        // Update last updated indicator
+        const timestamp = localStorage.getItem(CACHE_KEYS.brts + '_timestamp');
+        updateLastUpdatedUI('brts-last-updated', timestamp, fromCache);
+      } catch (err) {
+        console.error('Failed to load BRTS schedule', err);
+        document.getElementById('brts-area').innerHTML = '<p class="small">(Failed to load data)</p>';
       }
     }
 
@@ -501,6 +553,7 @@
     loadLocalContactDir();
     loadNotices();
     loadVegMarket();
+    loadBRTS();
 
     // Hamburger menu toggle
     const hamburger = document.querySelector('.hamburger');

@@ -73,6 +73,7 @@
       <a href="#notices">Notices</a>
       <a href="#directory">Directory</a>
       <a href="#around-us">Around Us</a>
+      <a href="#links">Links</a>
     </div>
   </nav>
 
@@ -146,6 +147,17 @@
         </div>
       </div>
     </section>
+
+    <section id="links" class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:10px">
+        <h2 style="margin:0">Important Links</h2>
+        <span id="links-last-updated" class="small" style="color:#666;white-space:nowrap"></span>
+      </div>
+      <p class="small" style="margin-top:15px">Quick access to important resources and websites.</p>
+      <div id="links-area">
+        <p class="small">(Loading...)</p>
+      </div>
+    </section>
   </main>
 
   <footer>
@@ -158,6 +170,7 @@
     const NOTICE_URL = 'https://opensheet.elk.sh/1g6h5CWppUDYl01K3agjUanTWcP_jQdoPfHG3uJd4Ubc/Notice';
     const VEGMARKET_URL = 'https://opensheet.elk.sh/1g6h5CWppUDYl01K3agjUanTWcP_jQdoPfHG3uJd4Ubc/VegMarket';
     const BRTS_URL = 'https://opensheet.elk.sh/1g6h5CWppUDYl01K3agjUanTWcP_jQdoPfHG3uJd4Ubc/BRTS';
+    const LINKS_URL = 'https://opensheet.elk.sh/1g6h5CWppUDYl01K3agjUanTWcP_jQdoPfHG3uJd4Ubc/Links';
 
     // Cache keys for localStorage
     const CACHE_KEYS = {
@@ -165,10 +178,12 @@
       notices: 'avrwa_notices_cache',
       vegmarket: 'avrwa_vegmarket_cache',
       brts: 'avrwa_brts_cache',
+      links: 'avrwa_links_cache',
       contactsTimestamp: 'avrwa_contacts_timestamp',
       noticesTimestamp: 'avrwa_notices_timestamp',
       vegmarketTimestamp: 'avrwa_vegmarket_timestamp',
-      brtsTimestamp: 'avrwa_brts_timestamp'
+      brtsTimestamp: 'avrwa_brts_timestamp',
+      linksTimestamp: 'avrwa_links_timestamp'
     };
 
     // Cache duration: 24 hour (in milliseconds)
@@ -461,6 +476,42 @@
       `;
     }
 
+    function renderLinks(linksList){
+      const linksArea = document.getElementById('links-area');
+
+      if(!linksList || !linksList.length){
+        linksArea.innerHTML = '<p class="small">(No links available)</p>';
+        return;
+      }
+
+      linksArea.innerHTML = `
+        <table style="width:100%;border-collapse:collapse;font-size:14px">
+          <thead>
+            <tr style="background:#f5f5f5;border-bottom:2px solid #ddd">
+              <th style="padding:10px;text-align:left;font-weight:600">Link</th>
+              <th style="padding:10px;text-align:left;font-weight:600">Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${linksList.map(item => {
+              const link = item.Link || '';
+              const label = escapeHtml(item.Label || 'Link');
+              const notes = escapeHtml(item.Notes || '');
+
+              return `
+                <tr style="border-bottom:1px solid #eee">
+                  <td style="padding:10px">
+                    ${link ? `<a href="${escapeHtml(link)}" target="_blank" style="color:var(--accent);text-decoration:none;font-weight:500">${label} <i class="fa-solid fa-external-link-alt" style="font-size:11px"></i></a>` : label}
+                  </td>
+                  <td style="padding:10px">${notes}</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
     async function loadNotices(){
       try {
         const { data: json, fromCache } = await fetchDataWithCache(NOTICE_URL, CACHE_KEYS.notices);
@@ -501,6 +552,20 @@
       } catch (err) {
         console.error('Failed to load BRTS schedule', err);
         document.getElementById('brts-area').innerHTML = '<p class="small">(Failed to load data)</p>';
+      }
+    }
+
+    async function loadLinks(){
+      try {
+        const { data: json, fromCache } = await fetchDataWithCache(LINKS_URL, CACHE_KEYS.links);
+        renderLinks(json);
+
+        // Update last updated indicator
+        const timestamp = localStorage.getItem(CACHE_KEYS.links + '_timestamp');
+        updateLastUpdatedUI('links-last-updated', timestamp, fromCache);
+      } catch (err) {
+        console.error('Failed to load links', err);
+        document.getElementById('links-area').innerHTML = '<p class="small">(Failed to load links)</p>';
       }
     }
 
@@ -552,6 +617,7 @@
 
     loadLocalContactDir();
     loadNotices();
+    loadLinks();
     loadVegMarket();
     loadBRTS();
 
